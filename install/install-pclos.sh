@@ -27,6 +27,12 @@
 # 10-4-2004                 rpm backup is back :)
 #                           save config into a file
 #                           tmp dir is always deleted
+# 10-5-2004                 grammar fixes by Tom Kelly, + fix bug (rpm backups)
+#                           root check available again, Tom Kelly
+#                           option in config to change the repository (thanks etjr)
+#                           by default install basesystem and apt
+#                           function for making a bootable livecd
+
 
 
 # some internal used functions...
@@ -35,8 +41,8 @@
 check_root() 
 {
 if [ $UID != 0 ]; then
-  explain "This script must be run as root"
-  exit
+	explain "This script must be run as root"
+	exit
 fi
 }
 
@@ -70,8 +76,9 @@ cat >tmp/new-apt-sources.list<<EOF
 #rpm ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
-rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar 
+rpm $APT_REPOSITORY
 
 EOF
 
@@ -168,6 +175,19 @@ USE_BACKUP_RPMS=1
 # Would you like to save the RPMs from next session?
 # Default: "1" = yes
 SAVE_RPMS=1
+
+# Where to get the files from. Usually it will be some online repository
+# for the main istaller it will be somewhere on the cdrom
+#
+# Some example:
+# "ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# "ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# "ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# "http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# "http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+#
+# default: "http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+APT_REPOSITORY="$APT_REPOSITORY"
 EOF
 }
 
@@ -178,9 +198,9 @@ NEW_ROOT=`pwd`/new-pclos
 LOG_FILE=tmp/make-install.log
 CLEAN_BEFORE=1
 CLEAN_AFTER=0
-
 USE_BACKUP_RPMS=1
 SAVE_RPMS=1
+APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 
 if [ ! -e install.config ]; then
         explain "No config found. Generating a default one."
@@ -212,6 +232,7 @@ mv $LOG_FILE .
 
 if [ $SAVE_RPMS != 0 ]; then
         explain "Backing up rpms for next time!"
+        mkdir -p rpms
         cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
 fi
 
@@ -256,15 +277,49 @@ install_system()
 {
 explain "installing basesystem on the new root"
 exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install basesystem"
-explain "done!"
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install apt"
 }
 
+make_livecd()
+{
+explain "creating a livecd! you are lucky!!!"
+
+# some setup for the livecd, not striclty needed, but looks cool :)
+# ok, i dont know why i cannot do this with "exec_cmd"
+echo "export PS1=\"[\u@pclos-install \W] \$ \"" > $NEW_ROOT/etc/profile.d/newprompt.sh
+chmod +x $NEW_ROOT/etc/profile.d/newprompt.sh
+exec_cmd "cp /etc/resolv.conf $NEW_ROOT/etc"
+
+
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox cdrecord mkisofs cloop-utils"
+
+# since mklivecd is not on the repositories, and it depends on X, which we dont have
+# now, we must D/L by hand, and then install by force
+#exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.7-0.cvs.20031118.1mdk.noarch.rpm"
+exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.8-1mdk.noarch.rpm"
+exec_cmd "rpm -Uhv --root $NEW_ROOT mklivecd*.rpm --nodeps"
+exec_cmd "rm -f mklivecd*.rpm"
+
+explain  "Making LIVECD"
+exec_cmd "mount none $NEW_ROOT/proc -t proc"
+#exec_cmd "chroot $NEW_ROOT mklivecd --resolution 800x600 --kernel 2.4.22-32tex livecd.iso --looptype cloop"
+exec_cmd "chroot $NEW_ROOT mklivecd --resolution 800x600 --kernel 2.4.22-32tex livecd.iso -looptype clp"
+exec_cmd "mv $NEW_ROOT/livecd.iso ."
+exec_cmd "umount $NEW_ROOT/proc"
+
+}
 
 # <-- main -->
 
+# run this script only as root
 check_root
 init_config
+
+# at this stage the script is runnning, ir can exit at init_config
+clear
 make_config_files
 update_apt
 install_system
+#make_livecd
 clean_up
+explain "All done! the script is finished"
