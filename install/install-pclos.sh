@@ -129,25 +129,30 @@ save_config()
 {
 cat >install.config<<EOF
 # This is the configuration file for the PCLinuxOS installer.
+
 # If you want to install PCLinuxOS using this installer, please review the options below
 # and change them if desired.
+
 
 # You can run automated installations using this script:
 # Before you run this script, just write this file, and set it up with the correct values for your
 # installation type.
 
 
+############### INSTALLER OPTIONS ##################
 
 # This variable tells the installer where you want to install PCLinuxOS.
 # If you want install to a partition, set it to the directory where you mounted the
 # partion which will become the new root device. 
 # For example, if you want to install into /dev/hda1 and /dev/hda1 is mounted at
 # /mnt/hda1, set this variable to "/mnt/hda1".
+# Where do you want the target directory to be?
 # Default: a directory called new-pclos beneath this script's directory.
 NEW_ROOT=$NEW_ROOT
 
 
-# The log file to be used. Each operation done by this script will be recorded there.
+# Name of the log file to record the operations done by this script?
+# Default: install.log
 LOG_FILE=$LOG_FILE
 
 
@@ -177,23 +182,36 @@ SAVE_RPMS=$SAVE_RPMS
 # File sources. Usually it will be some online repository.
 # For the main installer, it will be somewhere on the cdrom.
 #
-# Some examples:
-# "ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
-# "ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
-# "ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
-# "http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
-# "http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# To change, uncomment the one you want and comment the rest
+# Georgia Tech, USA
+# APT_REPOSITORY="ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+#
+# Netherlands Unix Users Group, Netherlands
+# APT_REPOSITORY="ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+#
+# Die Gesellschaft fur wissenschaftliche Datenverarbeitung mbH Gottigen, Germany
+# APT_REPOSITORY="ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+#
+# Ibiblio, US and various
+# APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+#
+# Israeli Group of Linux Users, Israel
+# APT_REPOSITORY="http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 #
 # default: "http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 APT_REPOSITORY="$APT_REPOSITORY"
 
-# The next part is dedicated to livecd, if the MAKE_LIVECD option is zero, this part of the config is ignored
-# See mklivecd or try 'mklivecd --help' for more information.
 
-# This script can also generate a bootable livecd iso file (livecd.iso).
+################## LIVE CD OPTIONS ###############
+
+# This script can also generate a bootable livecd iso file.
+# The next part is dedicated to livecd, if the MAKE_LIVECD option is zero,
+# the rest of the config file is ignored. See mklivecd or try 'mklivecd --help' for more information.
+
 # Would you like to generate a livecd?
 # default: "0" = no
 MAKE_LIVECD=$MAKE_LIVECD
+
 
 # Resolution of the livecd.
 # default : 800x600
@@ -287,7 +305,7 @@ explain "Cleaning \$NEW_ROOT"
 exec_cmd "rm -fr $NEW_ROOT" 
 fi
 
-explain "Making some needed dirs for the new root " 
+explain "Making some needed dirs for the new root." 
 exec_cmd "mkdir -p $NEW_ROOT/var/state/apt/lists/partial"
 exec_cmd "mkdir -p $NEW_ROOT/var/lib/rpm"
 exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/archives"
