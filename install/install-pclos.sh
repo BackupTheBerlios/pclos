@@ -15,7 +15,7 @@
 # 9-18-2003 forth version,  uses ibiblio instead of iglu
 #                           backs up rpms for next usage
 #                           finally read the faq of mklivecd :)
-#                           dowmloads old verions of mklivecd and installs it
+#                           downloads old verions of mklivecd and installs it
 #                           actually boots :)
 # 9-19-2004                 public domain license, 
 #                           split apt install
@@ -23,16 +23,23 @@
 # 10-03-2004                almost rewrite... i now use functions :)
 #                           all config files are saved in a temp dir
 #                           more flexible options (delete before, delete after... )   
-#                           added a lrger set of repositories to instal from
+#                           added a larger set of repositories to install from
 # 10-4-2004                 rpm backup is back :)
 #                           save config into a file
 #                           tmp dir is always deleted
-# 10-5-2004                 grammar fixes by Tom Kelly
-#                           root check available again, Tom Kelly
 
 
 # some internal used functions...
 # look for "main"
+
+check_root() 
+{
+if [ $UID != 0 ]; then
+  explain "This script must be run as root"
+  exit
+fi
+}
+
 exec_cmd() 
 {
 echo -en "\\033[1;31m"
@@ -64,7 +71,7 @@ cat >tmp/new-apt-sources.list<<EOF
 #rpm ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
-#rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/                          pclinuxos/2004 os updates texstar 
+#rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar 
 
 EOF
 
@@ -117,21 +124,21 @@ EOF
 save_config()
 {
 cat >install.config<<EOF
-# This is the configuration for the PCLinuxOS installer
-# If you want to install PCLinuxOS using this installer, please edit the variables bellow
+# This is the configuration file for the PCLinuxOS installer.
+# If you want to install PCLinuxOS using this installer, please edit the variables below.
 
 # You can run automated installations using this script:
-# Before you run this script, just wite this file, and set it up with correct values for your
+# Before you run this script, just write this file, and set it up with correct values for your
 # installation type
 
 
 
-# This variable tell the installer where you want to install PCLinuxOS to.
+# This variable tells the installer where you want to install PCLinuxOS.
 # If you want to install PCLinuxOS, set it to the directory in which you mounted the
 # new root device. 
 # For example, if you want to install into /dev/hda1 and /dev/hda1 is mount into
 # /mnt/hda1, set this variable to "/mnt/hda1"
-# Default: is is a direcoty called new-pclos under the directory of this script.
+# Default: is a directory called new-pclos under the directory of this script.
 NEW_ROOT=$NEW_ROOT
 
 
@@ -140,26 +147,26 @@ LOG_FILE=$LOG_FILE
 
 
 # Clean the target dir before?
-# Default: "1"
+# Default: "1" = yes
 CLEAN_BEFORE=$CLEAN_BEFORE
 
 
 # Clean the target dir after?
-# Default: "0"
+# Default: "0" = no
 CLEAN_AFTER=$CLEAN_AFTER
 
 
 # This script is smart enough to back up the RPMs downloaded by apt-get. 
-# This way, if you are testing the script, you will probably run it several times.
+# If you are testing the script, you will probably run it several times.
 # Downloading is a pain, this hack takes care of this. The next time you run it, the install
 # will be faster :)
 # Would you like to use the RPMs from the last session?
-# Default: "1"
+# Default: "1" = yes
 USE_BACKUP_RPMS=1
 
 
 # Would you like to save the RPMs from next session?
-# Default: "1"
+# Default: "1" = yes
 SAVE_RPMS=1
 EOF
 }
@@ -176,18 +183,18 @@ USE_BACKUP_RPMS=1
 SAVE_RPMS=1
 
 if [ ! -e install.config ]; then
-	explain "No config found. Generating a default one."
-	explain "You need to edit the config file (install.config) before you run this script again"
-	explain "In that script you can setup where to install PCLinuxOS into."
-	explain "Quiting now..."
-	
-	save_config
-	
-	exit
+        explain "No config found. Generating a default one."
+        explain "You need to edit the config file (install.config) before you run this script again"
+	explain "In that file you can indicate where to install PCLinuxOS."
+        explain "Quiting now..."
+        
+        save_config
+        
+        exit
 fi
 
-# this will load the user config, if he forgor something,
-# the deault values will be used
+# this will load the user config, if he forgot something,
+# the default values will be used
 . install.config
 
 mkdir -p tmp
@@ -204,13 +211,13 @@ mv $LOG_FILE .
 # and the log file was removed
 
 if [ $SAVE_RPMS != 0 ]; then
-	explain "Backing up rpms for next time!"
-	cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
+        explain "Backing up rpms for next time!"
+        cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
 fi
 
 if [ $CLEAN_AFTER != 0 ]; then
-	explain "Cleaning \$NEW_ROOT: $NEW_ROOT"
-	rm -fr $NEW_ROOT
+        explain "Cleaning \$NEW_ROOT: $NEW_ROOT"
+        rm -fr $NEW_ROOT
 fi
 
 explain "Cleaning tmp"
@@ -239,8 +246,8 @@ exec_cmd "apt-get -c tmp/new-apt.conf update "
 # now. this is a little hack... 
 # if there are some rpms available from the last install... copy them to the cache of the new system
 if [ $USE_BACKUP_RPMS != 0 ]; then
-	explain "restoring backup rpms"
-	cp -r rpms/*.rpm  $NEW_ROOT/var/cache/apt/
+        explain "restoring backup rpms"
+        cp -r rpms/*.rpm  $NEW_ROOT/var/cache/apt/
 fi
 
 }
@@ -255,6 +262,7 @@ explain "done!"
 
 # <-- main -->
 
+check_root
 init_config
 make_config_files
 update_apt
