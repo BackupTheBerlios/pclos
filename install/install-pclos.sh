@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 # elcuco, elcuco@kdemail.net
 #
 # license, public domain :)
@@ -21,8 +20,14 @@
 # 9-19-2004                 public domain license, 
 #                           split apt install
 #                           added root check (thanks tom!)
+# 10-03-2004                almost rewrite... i now use functions :)
+#                           all config files are saved in a temp dir
+#                           more flexible options (delete before, delete after... )   
+#                           added a lrger set of repositories to instal from
 
-LOG_FILE=make-install.log
+
+# some internal used functions...
+# look for "main"
 exec_cmd() 
 {
 echo -en "\\033[1;31m"
@@ -42,41 +47,21 @@ explain()
 echo -en "\\033[1;34m"
 echo "              *** $1"
 echo -en "\\033[0;39m"
-
-
-#echo $1 >> $LOG_FILE
-#echo    >> $LOG_FILE
 }
 
 
-if [ $UID != 0 ]; then
-  explain "This script must be run as root"
-  exit
-fi
-
-NEW_ROOT=`pwd`/new-pclos
-
-rm -f $LOG_FILE
-touch $LOG_FILE
-
-explain "Cleaning \$NEW_ROOT"
-exec_cmd "rm -fr $NEW_ROOT" 
-
-explain "Making some needed dirs for the new root"$LOG_FILE.tmp
-exec_cmd "mkdir -p $NEW_ROOT/var/state/apt/lists/partial"
-exec_cmd "mkdir -p $NEW_ROOT/var/lib/rpm"
-exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/archives"
-exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/partial"
-exec_cmd "mkdir -p $NEW_ROOT/etc/apt"
-
-explain "Copying rpms frpm a back up dir :) "
-exec_cmd "cp -r rpms/*.rpm  $NEW_ROOT/var/cache/apt/"
-
-
+make_config_files()
+{
 explain "Making new config files for apt "
-cat >new-apt-sources.list<<EOF
-rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar 
-#rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 stable os updates
+cat >tmp/new-apt-sources.list<<EOF
+#PCLINUXOS apt repository
+#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/                          pclinuxos/2004 os updates texstar 
+
 EOF
 
 #rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar stable
@@ -84,7 +69,7 @@ EOF
 
 
 
-cat >new-apt.conf<<EOF
+cat >tmp/new-apt.conf<<EOF
 APT {
     Clean-Installed "false";
     Get {
@@ -120,98 +105,74 @@ Dir{
    State "$NEW_ROOT/var/state/apt/";
    
    Etc{
-       SourceList "`pwd`/new-apt-sources.list";       
+       SourceList "`pwd`/tmp/new-apt-sources.list";       
    }
    Cache{
         archives "$NEW_ROOT/var/cache/apt/";
    }
 }
 EOF
+}
 
-cat >$NEW_ROOT/etc/apt/rpmpriorities<<EOF
-Essential:
-  apt
-  basesystem
-  bash
-  dev
-  e2fsprogs
-  filesystem
-  glibc
-  initscripts
-  kernel
-  modutils
-  mount
-  pam
-  passwd
-  pclinuxos-release
-  rpm
-  setup
-EOF
 
-#some hacks for making apt more quiet
-export LC_ALL=C
+init_config()
+{
+NEW_ROOT=`pwd`/new-pclos
+LOG_FILE=tmp/make-install.log
+CLEAN_BEFORE=1
+CLEAN_AFTER=0
+
+mkdir -p tmp
+rm -f $LOG_FILE
+touch $LOG_FILE
+}
+
+clean_up()
+{
+mv $LOG_FILE .
+
+
+if [ $CLEAN_AFTER != 0 ]; then
+	explain "Cleaning \$NEW_ROOT: $NEW_ROOT"
+	exec_cmd "rm -fr $NEW_ROOT" 
+	explain "Cleaning tmp"
+	exec_cmd rm -fr tmp
+fi
+}
+
+update_apt()
+{
+if [ $CLEAN_BEFORE != 0 ]; then
+explain "Cleaning \$NEW_ROOT"
+exec_cmd "rm -fr $NEW_ROOT" 
+fi
+
+explain "Making some needed dirs for the new root"$LOG_FILE.tmp
+exec_cmd "mkdir -p $NEW_ROOT/var/state/apt/lists/partial"
+exec_cmd "mkdir -p $NEW_ROOT/var/lib/rpm"
+exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/archives"
+exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/partial"
+exec_cmd "mkdir -p $NEW_ROOT/etc/apt"
 
 explain "updating apt cache in the new root"
-exec_cmd "apt-get -c new-apt.conf update "
+exec_cmd "apt-get -c tmp/new-apt.conf update "
+}
 
+install_system()
+{
 explain "installing basesystem on the new root"
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install basesystem devfsd mingetty"
-
-# lets remove the old $NEW_ROOT/etc/apt/rpmpriorities
-exec_cmd "rm -f $NEW_ROOT/etc/apt/rpmpriorities"
-
-
-# six, install apt-get. Need to do it like this, since the OpenOffice package has some bugs
-explain "installing apt on the new root"
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install libgcc1 libreadline4 libstdc++5"
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install apt"
+#exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install basesystem"
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install setup filesystem sed rpm"
+}
 
 
-# lets backup the base system 
-#exec_cmd "rm -fr $NEW_ROOT/var/cache/apt/*.rpm"
+# <-- main -->
 
-#pushd `pwd`
-#cd $NEW_ROOT
-#tar cvf - . | bzip2 -f > "../pclinuxos-base.tar.bz2"
-#popd
+init_config
+make_config_files
+#update_apt
+install_system
+clean_up
 
-
-# lets make the system ready for the installer
-#exec_cmd "cp -r rpms/*.rpm  $NEW_ROOT/var/cache/apt/"
-
-explain "Preparing new system for mklivecd"
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install vim-minimal mc dialog"
-
-# mklivecd shit
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install cdrecord mkisofs cloop-utils"
-exec_cmd "apt-get -c new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox "
-
-explain  "getting and installing mklivecd from berlios"
-exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.7-0.cvs.20031118.1mdk.noarch.rpm"
-exec_cmd "rpm -Uhv --root $NEW_ROOT mklivecd*.rpm --nodeps"
-
-explain  "mounting procfs on the new target"
-exec_cmd "mount none $NEW_ROOT/proc -t proc"
-
-explain "New config files for installer"
-echo "export PS1=\"[\u@pclos-install \W] \$ \"" > $NEW_ROOT/etc/profile.d/newprompt.sh
-chmod +x $NEW_ROOT/etc/profile.d/newprompt.sh
-exec_cmd "cp /etc/resolv.conf $NEW_ROOT/etc"
-
-exec_cmd "chroot $NEW_ROOT /usr/sbin/pwconv"
-exec_cmd "chroot $NEW_ROOT \"echo 'root' | passwd --stdin root\""
-
-explain "Making installer ISO"
-exec_cmd "chroot $NEW_ROOT mklivecd --resolution 800x600 --kernel 2.4.22-32tex livecd.iso --looptype cloop"
-exec_cmd "mv $NEW_ROOT/livecd.iso ."
-exec_cmd "umount $NEW_ROOT/proc"
-
-explain "Backing up rpms"
-exec_cmd "mkdir -p rpms"
-exec_cmd "cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/"
-
-explain "Cleaning..."
-exec_cmd "rm -f new-apt.conf new-apt-sources.list"
-exec_cmd "rm -fr $NEW_ROOT" 
-exec_cmd "rm -fr mklivecd*.rpm" 
-
+less make-install.log
+clear
