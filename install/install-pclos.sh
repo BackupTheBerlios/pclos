@@ -58,18 +58,13 @@ make_config_files()
 explain "Making new config files for apt "
 cat >tmp/new-apt-sources.list<<EOF
 #PCLINUXOS apt repository
-#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
 #rpm ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
-#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
-rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/                          pclinuxos/2004 os updates texstar 
+rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar
+#rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/                          pclinuxos/2004 os updates texstar 
 
 EOF
-
-#rpm http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar stable
-#rpm http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 stable os updates
-
 
 
 cat >tmp/new-apt.conf<<EOF
