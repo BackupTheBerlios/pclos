@@ -27,6 +27,8 @@
 # 10-4-2004                 rpm backup is back :)
 #                           save config into a file
 #                           tmp dir is always deleted
+# 10-5-2004                 grammar fixes by Tom Kelly
+#                           root check available again, Tom Kelly
 
 
 # some internal used functions...
