@@ -12,7 +12,7 @@
 #                           I verified it works by chroot
 # 9-13-2004                 rpms are saved locally
 #                           made base system tgz
-# 9-18-2003 forth version,  uses ibiblio instead of iglu
+# 9-18-2003 fourth version,  uses ibiblio instead of iglu
 #                           backs up rpms for next usage
 #                           finally read the faq of mklivecd :)
 #                           downloads old verions of mklivecd and installs it
@@ -34,7 +34,8 @@
 #                           function for making a bootable livecd
 # 10-6-2004                 config for making a livecd is saved in the config, Tom Kelly
 #                           config file name can be changed
-
+#
+# 2005-06-22		    Updates: kernel, use squashfs, update ibiblio, mklivecd 
 
 
 # some internal used functions...
@@ -112,7 +113,7 @@ RPM {
     RootDir "$NEW_ROOT";
 };
 
-Dir{
+Dir {
    State "$NEW_ROOT/var/state/apt/";
    
    Etc{
@@ -187,7 +188,7 @@ SAVE_RPMS=$SAVE_RPMS
 # APT_REPOSITORY="ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 #
 # Netherlands Unix Users Group, Netherlands
-# APT_REPOSITORY="ftp://ftp.nluug.nl/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 #
 # Die Gesellschaft fur wissenschaftliche Datenverarbeitung mbH Gottigen, Germany
 # APT_REPOSITORY="ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
@@ -198,7 +199,7 @@ SAVE_RPMS=$SAVE_RPMS
 # Israeli Group of Linux Users, Israel
 # APT_REPOSITORY="http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 #
-# default: "http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# default: "http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 APT_REPOSITORY="$APT_REPOSITORY"
 
 
@@ -218,11 +219,11 @@ MAKE_LIVECD=$MAKE_LIVECD
 LIVECD_RESOLUTION=$LIVECD_RESOLUTION
 
 # Compression type <clp|sqfs|iso>
-# Default : clp
+# Default : sqfs 
 LIVECD_LOOPTYPE=$LIVECD_LOOPTYPE
 
 # Kernel to be used while booting.
-# default : 2.4.22-32tex
+# default : 2.6.11.oci11.mdk
 LIVECD_KERNEL=$LIVECD_KERNEL
 
 # Keyboard to be used in the livecd.
@@ -244,12 +245,13 @@ CLEAN_BEFORE=1
 CLEAN_AFTER=0
 USE_BACKUP_RPMS=1
 SAVE_RPMS=1
-APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+##APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 
 MAKE_LIVECD=0
 LIVECD_RESOLUTION="800x600"
-LIVECD_LOOPTYPE="clp"
-LIVECD_KERNEL="2.4.22-32tex"
+LIVECD_LOOPTYPE="sqfs"
+LIVECD_KERNEL="2.6.11-oci11.mdk"
 LIVECD_KEYBOARD="us"
 LIVECD_NAME="livecd.iso"
 
@@ -346,12 +348,14 @@ chmod +x $NEW_ROOT/etc/profile.d/newprompt.sh
 exec_cmd "cp /etc/resolv.conf $NEW_ROOT/etc"
 
 
-exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox cdrecord mkisofs cloop-utils"
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox cdrecord mkisofs squashfs-tools"
 
 # since mklivecd is not on the repositories, and it depends on X, which we dont have
 # now, we must D/L by hand, and then install by force
+
 #exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.7-0.cvs.20031118.1mdk.noarch.rpm"
-exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.8-1mdk.noarch.rpm"
+#exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.8-1mdk.noarch.rpm"
+exec_cmd  "wget http://download.berlios.de/livecd/mklivecd-0.5.9-0.20041231.1mdk.noarch.rpm"
 exec_cmd "rpm -Uhv --root $NEW_ROOT mklivecd*.rpm --nodeps"
 exec_cmd "rm -f mklivecd*.rpm"
 
