@@ -5,37 +5,41 @@
 # license, public domain :)
 
 # history:
-# 9-9-2004  first version,
-# 9-10-2004 second version, [apt,vim,mc,dialog]
-#                           added minimal network
-# 9-11-2004 third version,  [cdrecord stuff]
-#                           I verified it works by chroot
-# 9-13-2004                 rpms are saved locally
-#                           made base system tgz
-# 9-18-2003 fourth version,  uses ibiblio instead of iglu
-#                           backs up rpms for next usage
-#                           finally read the faq of mklivecd :)
-#                           downloads old verions of mklivecd and installs it
-#                           actually boots :)
-# 9-19-2004                 public domain license, 
-#                           split apt install
-#                           added root check (thanks tom!)
-# 10-03-2004                almost rewrite... i now use functions :)
-#                           all config files are saved in a temp dir
-#                           more flexible options (delete before, delete after... )   
-#                           added a larger set of repositories to install from
-# 10-4-2004                 rpm backup is back :)
-#                           save config into a file
-#                           tmp dir is always deleted
+# 1-7-2005                  Changelog reordered (newer at top) (diego)
+#                           Config file can be renamed (no command line yet) (diego)
+#                           Config files are saved on clean (diego)
+#                           New mode: read only config files
+#                           Removed Iglu from mirrors list
+# 2005-06-22                Updates: kernel, use squashfs, update ibiblio, mklivecd 
+# 10-6-2004                 config for making a livecd is saved in the config, Tom Kelly
+#                           config file name can be changed
 # 10-5-2004                 grammar fixes by Tom Kelly, + fix bug (rpm backups)
 #                           root check available again, Tom Kelly
 #                           option in config to change the repository (thanks etjr)
 #                           by default install basesystem and apt
 #                           function for making a bootable livecd
-# 10-6-2004                 config for making a livecd is saved in the config, Tom Kelly
-#                           config file name can be changed
-#
-# 2005-06-22		    Updates: kernel, use squashfs, update ibiblio, mklivecd 
+# 10-4-2004                 rpm backup is back :)
+#                           save config into a file
+#                           tmp dir is always deleted
+# 10-03-2004                almost rewrite... i now use functions :)
+#                           all config files are saved in a temp dir
+#                           more flexible options (delete before, delete after... )   
+#                           added a larger set of repositories to install from
+# 9-19-2004                 public domain license, 
+#                           split apt install
+#                           added root check (thanks tom!)
+# 9-18-2003 fourth version,  uses ibiblio instead of iglu
+#                           backs up rpms for next usage
+#                           finally read the faq of mklivecd :)
+#                           downloads old verions of mklivecd and installs it
+#                           actually boots :)
+# 9-13-2004                 rpms are saved locally
+#                           made base system tgz
+# 9-11-2004 third version,  [cdrecord stuff]
+#                           I verified it works by chroot
+# 9-10-2004 second version, [apt,vim,mc,dialog]
+#                           added minimal network
+# 9-9-2004  first version,
 
 
 # some internal used functions...
@@ -128,7 +132,7 @@ EOF
 
 save_config()
 {
-cat >install.config<<EOF
+cat >$CONFIG_FILE<<EOF
 # This is the configuration file for the PCLinuxOS installer.
 
 # If you want to install PCLinuxOS using this installer, please review the options below
@@ -155,6 +159,11 @@ NEW_ROOT=$NEW_ROOT
 # Name of the log file to record the operations done by this script?
 # Default: install.log
 LOG_FILE=$LOG_FILE
+
+# If you want this config to be updated on each run leave it on 0
+# If the value is "1" the file will not be modified at all
+# Default: 0 (rewrite this config)
+READONLY_CONFIG=$READONLY_CONFIG
 
 
 # Clean the target dir before?
@@ -195,9 +204,6 @@ SAVE_RPMS=$SAVE_RPMS
 #
 # Ibiblio, US and various
 # APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
-#
-# Israeli Group of Linux Users, Israel
-# APT_REPOSITORY="http://iglu.org.il/pub/mirrors/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 #
 # default: "http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 APT_REPOSITORY="$APT_REPOSITORY"
@@ -248,6 +254,8 @@ SAVE_RPMS=1
 ##APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 
+READONLY_CONFIG=0
+
 MAKE_LIVECD=0
 LIVECD_RESOLUTION="800x600"
 LIVECD_LOOPTYPE="sqfs"
@@ -255,20 +263,20 @@ LIVECD_KERNEL="2.6.11-oci11.mdk"
 LIVECD_KEYBOARD="us"
 LIVECD_NAME="livecd.iso"
 
-if [ ! -e install.config ]; then
+if [ ! -e $CONFIG_FILE ]; then
         explain "No config file found. Generating a default one."
         explain "Please review the config file (install.config) before you run this script again"
 	explain "In the file you can indicate where to install PCLinuxOS, and other preferences."
         explain "Quiting now..."
         
-        save_config
-        
+       	save_config
+
         exit
 fi
 
 # this will load the user config, if he forgot something,
 # the default values will be used
-. install.config
+. $CONFIG_FILE
 
 mkdir -p tmp
 rm -f tmp/$LOG_FILE
@@ -278,6 +286,13 @@ touch tmp/$LOG_FILE
 
 clean_up()
 {
+if [ $READONLY_CONFIG == 0 ]; then
+	save_config
+else
+	explain "Warning: Config file is in read-only mode"
+	explain "-----------------------------------------"
+fi
+
 mv tmp/$LOG_FILE .
 
 # from now on, we cannot use exec_cmd, since it logs, 
@@ -297,14 +312,13 @@ fi
 explain "Cleaning tmp."
 rm -fr tmp
 
-save_config
 }
 
 update_apt()
 {
 if [ $CLEAN_BEFORE != 0 ]; then
-explain "Cleaning \$NEW_ROOT"
-exec_cmd "rm -fr $NEW_ROOT" 
+	explain "Cleaning \$NEW_ROOT"
+	exec_cmd "rm -fr $NEW_ROOT" 
 fi
 
 explain "Making some needed dirs for the new root." 
@@ -373,6 +387,11 @@ explain "Created $LIVECD_NAME"
 
 # run this script only as root
 check_root
+
+# if you want to read another config file, this is the line
+# TODO run tim parameter to change this
+CONFIG_FILE="fedora.config"
+
 init_config
 
 # at this stage the script is runnning, ir can exit at init_config
