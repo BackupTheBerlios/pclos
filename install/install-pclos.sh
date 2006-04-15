@@ -5,6 +5,7 @@
 # license, public domain :)
 
 # history:
+# 2006-04-15		    Resynchronize with PCLOS
 # 1-7-2005                  Changelog reordered (newer at top) (diego)
 #                           Config file can be renamed (no command line yet) (diego)
 #                           Config files are saved on clean (diego)
@@ -205,7 +206,8 @@ SAVE_RPMS=$SAVE_RPMS
 # Ibiblio, US and various
 # APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 #
-# default: "http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
+# default:
+# APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 APT_REPOSITORY="$APT_REPOSITORY"
 
 
@@ -221,7 +223,7 @@ MAKE_LIVECD=$MAKE_LIVECD
 
 
 # Resolution of the livecd.
-# default : 800x600
+# default : 1024x768
 LIVECD_RESOLUTION=$LIVECD_RESOLUTION
 
 # Compression type <clp|sqfs|iso>
@@ -229,7 +231,7 @@ LIVECD_RESOLUTION=$LIVECD_RESOLUTION
 LIVECD_LOOPTYPE=$LIVECD_LOOPTYPE
 
 # Kernel to be used while booting.
-# default : 2.6.11.oci11.mdk
+# default : 2.6.15.oci3.lve
 LIVECD_KERNEL=$LIVECD_KERNEL
 
 # Keyboard to be used in the livecd.
@@ -256,10 +258,10 @@ APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/
 
 READONLY_CONFIG=0
 
-MAKE_LIVECD=0
-LIVECD_RESOLUTION="800x600"
+MAKE_LIVECD=1
+LIVECD_RESOLUTION="1024x768"
 LIVECD_LOOPTYPE="sqfs"
-LIVECD_KERNEL="2.6.11-oci11.mdk"
+LIVECD_KERNEL="2.6.15-oci3.lve"
 LIVECD_KEYBOARD="us"
 LIVECD_NAME="livecd.iso"
 
@@ -355,7 +357,7 @@ fi
 
 explain "Creating a livecd! You are lucky!!!"
 
-# some setup for the livecd, not striclty needed, but looks cool :)
+# some setup for the livecd, not strictly needed, but looks cool :)
 # ok, i dont know why i cannot do this with "exec_cmd"
 echo "export PS1=\"[\u@pclos-install \W] \$ \"" > $NEW_ROOT/etc/profile.d/newprompt.sh
 chmod +x $NEW_ROOT/etc/profile.d/newprompt.sh
@@ -390,7 +392,7 @@ check_root
 
 # if you want to read another config file, this is the line
 # TODO run tim parameter to change this
-CONFIG_FILE="fedora.config"
+CONFIG_FILE="pclos.config"
 
 init_config
 
