@@ -5,6 +5,8 @@
 # license, public domain :)
 
 # history:
+# 2006-04-17		    Better network - thanks to etjr
+#			    Make partition bootable with lilo
 # 2006-04-15		    Resynchronize with PCLOS
 # 1-7-2005                  Changelog reordered (newer at top) (diego)
 #                           Config file can be renamed (no command line yet) (diego)
@@ -133,6 +135,7 @@ EOF
 
 save_config()
 {
+# Write defaults to the config file
 cat >$CONFIG_FILE<<EOF
 # This is the configuration file for the PCLinuxOS installer.
 
@@ -156,6 +159,9 @@ cat >$CONFIG_FILE<<EOF
 # Default: a directory called new-pclos beneath this script's directory.
 NEW_ROOT=$NEW_ROOT
 
+# Bootable partition device 
+# For a bootable partion, manually "mount $ROOT_DEV $NEW_ROOT"
+ROOT_DEV=$ROOT_DEV
 
 # Name of the log file to record the operations done by this script?
 # Default: install.log
@@ -243,17 +249,18 @@ LIVECD_KEYBOARD=$LIVECD_KEYBOARD
 LIVECD_NAME=$LIVECD_NAME
 EOF
 }
+## End of config file
 
-
+## Load default variables
 init_config()
 {
 NEW_ROOT=`pwd`/new-pclos
+ROOT_DEV="/dev/hda14"
 LOG_FILE=make-install.log
 CLEAN_BEFORE=1
 CLEAN_AFTER=0
 USE_BACKUP_RPMS=1
 SAVE_RPMS=1
-##APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
 APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 
 READONLY_CONFIG=0
@@ -276,8 +283,9 @@ if [ ! -e $CONFIG_FILE ]; then
         exit
 fi
 
+## Load and use the config file
 # this will load the user config, if he forgot something,
-# the default values will be used
+# use default values unless replaced by the config file 
 . $CONFIG_FILE
 
 mkdir -p tmp
@@ -329,6 +337,7 @@ exec_cmd "mkdir -p $NEW_ROOT/var/lib/rpm"
 exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/archives"
 exec_cmd "mkdir -p $NEW_ROOT/var/cache/apt/partial"
 exec_cmd "mkdir -p $NEW_ROOT/etc/apt"
+exec_cmd "mkdir -p $NEW_ROOT/sys"
 
 explain "Updating apt cache in the new root."
 exec_cmd "apt-get -c tmp/new-apt.conf update "
@@ -347,6 +356,74 @@ install_system()
 explain "Installing basesystem on the new root."
 exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install basesystem"
 exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install apt"
+# Optional editor
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install vim-minimal"
+
+# lets setup for group and shadow passwd
+exec_cmd "touch $NEW_ROOT/etc/group"
+exec_cmd "touch $NEW_ROOT/etc/shadow"
+echo "root::::::::" > $NEW_ROOT/etc/shadow
+}
+
+
+make_fstab()
+{
+cat >"$NEW_ROOT/etc/fstab"<<EOF
+## FSTAB auto-generated from install-pclos.sh script
+none    /proc   proc    defaults        0 0
+none    /dev/pts        devpts  mode=0620       0 0
+none    /proc/bus/usb   usbfs   defaults        0 0
+
+# Self default as root partition (assume ext3)
+$ROOT_DEV      /       ext3    defaults        0 0
+EOF
+}
+
+
+make_boot()
+{
+exec_cmd "chroot $NEW_ROOT mkinitrd /boot/initrd-$LIVECD_KERNEL.img $LIVECD_KERNEL"
+cat >"$NEW_ROOT/etc/lilo.conf"<<EOF
+boot="$ROOT_DEV"
+map=/boot/map
+default="$LIVECD_KERNEL"
+#keytable=/boot/livecd.klt
+prompt
+nowarn
+timeout=100
+menu-scheme=wb:bw:wb:bw
+image=/boot/vmlinuz-$LIVECD_KERNEL
+	initrd=/boot/initrd-$LIVECD_KERNEL.img
+        label="$LIVECD_KERNEL"
+        root="$ROOT_DEV"
+	vga=794
+EOF
+exec_cmd "chroot $NEW_ROOT lilo -v"
+} 
+
+
+make_network()
+### use "dhclient eth0" after boot -- FIX AUTO?
+{
+# Setup dhcp and networking
+exec_cmd "mkdir -p $NEW_ROOT/etc/sysconfig/network-scripts"
+exec_cmd "touch $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0"
+chmod 755 $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0
+echo "DEVICE=eth0 ONBOOT=yes BOOTPROTO=dhcp" > $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0
+exec_cmd "touch $NEW_ROOT/etc/sysconfig/network"
+echo "NETWORKING=yes" > $NEW_ROOT/etc/sysconfig/network
+
+# Setup resolv.conf
+exec_cmd "touch $NEW_ROOT/etc/resolv.conf"
+echo "nameserver 127.0.0.1" > $NEW_ROOT/etc/resolv.conf
+
+# Setup for localhost
+exec_cmd "touch $NEW_ROOT/etc/hosts"
+echo "127.0.0.1 localhost.localdomain localhost" > $NEW_ROOT/etc/hosts
+
+# Install network programs
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install dhcp-client dhcp-common locales locales-en pump"
+
 }
 
 make_livecd()
@@ -361,15 +438,13 @@ explain "Creating a livecd! You are lucky!!!"
 # ok, i dont know why i cannot do this with "exec_cmd"
 echo "export PS1=\"[\u@pclos-install \W] \$ \"" > $NEW_ROOT/etc/profile.d/newprompt.sh
 chmod +x $NEW_ROOT/etc/profile.d/newprompt.sh
-exec_cmd "cp /etc/resolv.conf $NEW_ROOT/etc"
+# exec_cmd "cp /etc/resolv.conf $NEW_ROOT/etc"
 
-
-exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox cdrecord mkisofs squashfs-tools"
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClibc busybox cdrecord mkisofs squashfs-tools mediacheck"
 
 # since mklivecd is not on the repositories, and it depends on X, which we dont have
 # now, we must D/L by hand, and then install by force
 
-#exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.7-0.cvs.20031118.1mdk.noarch.rpm"
 #exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.8-1mdk.noarch.rpm"
 exec_cmd  "wget http://download.berlios.de/livecd/mklivecd-0.5.9-0.20041231.1mdk.noarch.rpm"
 exec_cmd "rpm -Uhv --root $NEW_ROOT mklivecd*.rpm --nodeps"
@@ -387,19 +462,23 @@ explain "Created $LIVECD_NAME"
 
 # <-- main -->
 
-# run this script only as root
+# Only root may Run this script.
 check_root
 
-# if you want to read another config file, this is the line
+# If you want to read another config file, this is the line
 # TODO run tim parameter to change this
 CONFIG_FILE="pclos.config"
 
 init_config
 
-# at this stage the script is runnning, ir can exit at init_config
+# At this stage the script is runnning, or it can exit at init_config
 make_config_files
 update_apt
 install_system
+make_network
 make_livecd
+make_fstab
+make_boot
 clean_up
 explain "All done! The script is finished!"
+exit
