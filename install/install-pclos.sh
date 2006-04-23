@@ -5,6 +5,7 @@
 # license, public domain :)
 
 # history:
+# 2006-04-23		    Re-ordered sections, minor updates, etjr changes 
 # 2006-04-17		    Better network - thanks to etjr
 #			    Make partition bootable with lilo
 # 2006-04-15		    Resynchronize with PCLOS
@@ -135,32 +136,34 @@ EOF
 
 save_config()
 {
-# Write defaults to the config file
+# Write default values to the config file
 cat >$CONFIG_FILE<<EOF
-# This is the configuration file for the PCLinuxOS installer.
+# This is the auto generated configuration file for the 
+# PCLinuxOS mini installer (install-pclos.sh)
 
-# If you want to install PCLinuxOS using this installer, please review the options below
-# and change them if desired.
-
+# If you want to install PCLinuxOS using this installer, please review 
+# the options below and change them here, or in the main script if desired.
 
 # You can run automated installations using this script:
-# Before you run this script, just write this file, and set it up with the correct values for your
-# installation type.
+# Before you run this script, edit this file, and set it up with 
+# the correct values for your installation.
 
-
-############### INSTALLER OPTIONS ##################
-
+############### INSTALLER OPTIONS ########################
+#### This section explains them				##
+#### Manually change in install-pclos.sh below at 	##
+#### init_config() 					##
+# 
 # This variable tells the installer where you want to install PCLinuxOS.
 # If you want install to a partition, set it to the directory where you mounted the
-# partion which will become the new root device. 
+# partion which will become the bootable new installation. 
 # For example, if you want to install into /dev/hda1 and /dev/hda1 is mounted at
 # /mnt/hda1, set this variable to "/mnt/hda1".
 # Where do you want the target directory to be?
 # Default: a directory called new-pclos beneath this script's directory.
 NEW_ROOT=$NEW_ROOT
 
-# Bootable partition device 
-# For a bootable partion, manually "mount $ROOT_DEV $NEW_ROOT"
+# Install to a /dev/hdaX partition. This device will be mounted
+# at NEW_ROOT && COMPLETELY ERASED!!!! Use caution 
 ROOT_DEV=$ROOT_DEV
 
 # Name of the log file to record the operations done by this script?
@@ -172,16 +175,13 @@ LOG_FILE=$LOG_FILE
 # Default: 0 (rewrite this config)
 READONLY_CONFIG=$READONLY_CONFIG
 
-
 # Clean the target dir before?
 # Default: "1" = yes
 CLEAN_BEFORE=$CLEAN_BEFORE
 
-
 # Clean the target dir after?
 # Default: "0" = no
 CLEAN_AFTER=$CLEAN_AFTER
-
 
 # This script is smart enough to back up the RPMs downloaded by apt-get. 
 # If you are testing the script, you will probably run it several times.
@@ -191,53 +191,50 @@ CLEAN_AFTER=$CLEAN_AFTER
 # Default: "1" = yes
 USE_BACKUP_RPMS=$USE_BACKUP_RPMS
 
-
 # Would you like to save the RPMs for the next session?
 # Default: "1" = yes
 SAVE_RPMS=$SAVE_RPMS
 
-# File sources. Usually it will be some online repository.
+###
+# Apt file sources. Usually it will be some online repository.
 # For the main installer, it will be somewhere on the cdrom.
 #
-# To change, uncomment the one you want and comment the rest
 # Georgia Tech, USA
-# APT_REPOSITORY="ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# APT_REPOSITORY="ftp://ftp-linux.cc.gatech.edu/pub/metalab/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 93 os updates texstar"
 #
 # Netherlands Unix Users Group, Netherlands
-# APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
+# APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 93 os updates texstar unstable"
 #
 # Die Gesellschaft fur wissenschaftliche Datenverarbeitung mbH Gottigen, Germany
-# APT_REPOSITORY="ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# APT_REPOSITORY="ftp://ftp.gwdg.de/pub/linux/mirrors/sunsite/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 93 os updates texstar"
 #
 # Ibiblio, US and various
-# APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar"
+# APT_REPOSITORY="http://ftp.ibiblio.org/pub/Linux/distributions/contrib/texstar/pclinuxos/apt/ pclinuxos/2004 93 os updates texstar"
 #
-# default:
-# APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
 APT_REPOSITORY="$APT_REPOSITORY"
 
-
-################## LIVE CD OPTIONS ###############
-
+### Configuration of LiveCD options  ###########
 # This script can also generate a bootable livecd iso file.
 # The next part is dedicated to livecd, if the MAKE_LIVECD option is zero,
-# the rest of the config file is ignored. See mklivecd or try 'mklivecd --help' for more information.
+# The rest of the config file is ignored. See mklivecd or try 
+# 'mklivecd --help' for more information.
 
 # Would you like to generate a livecd?
 # default: "0" = no
 MAKE_LIVECD=$MAKE_LIVECD
 
-
 # Resolution of the livecd.
 # default : 1024x768
 LIVECD_RESOLUTION=$LIVECD_RESOLUTION
 
-# Compression type <clp|sqfs|iso>
+# Compression type <clp|sqfs|iso> (only sqfs)
 # Default : sqfs 
 LIVECD_LOOPTYPE=$LIVECD_LOOPTYPE
 
 # Kernel to be used while booting.
-# default : 2.6.15.oci3.lve
+# This may be subject to repository dependencies
+# old: 2.6.12-oci6.mdk
+# current default: 2.6.15-oci3.lve
 LIVECD_KERNEL=$LIVECD_KERNEL
 
 # Keyboard to be used in the livecd.
@@ -249,21 +246,25 @@ LIVECD_KEYBOARD=$LIVECD_KEYBOARD
 LIVECD_NAME=$LIVECD_NAME
 EOF
 }
-## End of config file
+##### End of options, the variables are set below and saved to config file
 
-## Load default variables
 init_config()
 {
+######################### Load default variables #####################
+#### Manually edit here to set the default values
+#### This script can "reload" them from the config file by
+#### modifying itself. Not recommended.
+
 NEW_ROOT=`pwd`/new-pclos
-ROOT_DEV="/dev/hda14"
+ROOT_DEV=""
 LOG_FILE=make-install.log
 CLEAN_BEFORE=1
 CLEAN_AFTER=0
 USE_BACKUP_RPMS=1
 SAVE_RPMS=1
-APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 os updates texstar unstable"
+APT_REPOSITORY="http://ftp.nluug.nl/ibiblio/distributions/texstar/pclinuxos/apt/ pclinuxos/2004 93 os updates texstar unstable"
 
-READONLY_CONFIG=0
+READONLY_CONFIG=1
 
 MAKE_LIVECD=1
 LIVECD_RESOLUTION="1024x768"
@@ -283,9 +284,8 @@ if [ ! -e $CONFIG_FILE ]; then
         exit
 fi
 
-## Load and use the config file
-# this will load the user config, if he forgot something,
-# use default values unless replaced by the config file 
+## Load and use the config file to replace the
+## above default values with the config file values
 . $CONFIG_FILE
 
 mkdir -p tmp
@@ -294,38 +294,13 @@ touch tmp/$LOG_FILE
 }
 
 
-clean_up()
-{
-if [ $READONLY_CONFIG == 0 ]; then
-	save_config
-else
-	explain "Warning: Config file is in read-only mode"
-	explain "-----------------------------------------"
-fi
-
-mv tmp/$LOG_FILE .
-
-# from now on, we cannot use exec_cmd, since it logs, 
-# and the log file was removed
-
-if [ $SAVE_RPMS != 0 ]; then
-        explain "Backing up rpms for next time."
-        mkdir -p rpms
-        cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
-fi
-
-if [ $CLEAN_AFTER != 0 ]; then
-        explain "Cleaning \$NEW_ROOT: $NEW_ROOT"
-        rm -fr $NEW_ROOT
-fi
-
-explain "Cleaning tmp."
-rm -fr tmp
-
-}
-
 update_apt()
 {
+explain "Root dev = $ROOT_DEV"
+if [ $ROOT_DEV != 0 ]; then
+	explain "Mounting $ROOT_DEV at $NEW_ROOT"
+	exec_cmd "mount $ROOT_DEV $NEW_ROOT"
+fi
 if [ $CLEAN_BEFORE != 0 ]; then
 	explain "Cleaning \$NEW_ROOT"
 	exec_cmd "rm -fr $NEW_ROOT" 
@@ -342,8 +317,8 @@ exec_cmd "mkdir -p $NEW_ROOT/sys"
 explain "Updating apt cache in the new root."
 exec_cmd "apt-get -c tmp/new-apt.conf update "
 
-# now. this is a little hack... 
-# if there are some rpms available from the last install... copy them to the cache of the new system
+# Reuse rpms, if available from the last install... 
+# Copy them to the cache of the new system
 if [ $USE_BACKUP_RPMS != 0 ]; then
         explain "Restoring backup rpms."
         cp -r rpms/*.rpm  $NEW_ROOT/var/cache/apt/
@@ -405,11 +380,20 @@ exec_cmd "chroot $NEW_ROOT lilo -v"
 make_network()
 ### use "dhclient eth0" after boot -- FIX AUTO?
 {
+# Install network programs
+exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install dhcp-client dhcp-common locales loca
+les-en pump"
+
 # Setup dhcp and networking
 exec_cmd "mkdir -p $NEW_ROOT/etc/sysconfig/network-scripts"
 exec_cmd "touch $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0"
 chmod 755 $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0
-echo "DEVICE=eth0 ONBOOT=yes BOOTPROTO=dhcp" > $NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0
+cat > "$NEW_ROOT/etc/sysconfig/network-scripts/ifcfg-eth0"<<EOF
+DEVICE=eth0
+ONBOOT=yes
+BOOTPROTO=dhcp
+EOF
+
 exec_cmd "touch $NEW_ROOT/etc/sysconfig/network"
 echo "NETWORKING=yes" > $NEW_ROOT/etc/sysconfig/network
 
@@ -421,10 +405,22 @@ echo "nameserver 127.0.0.1" > $NEW_ROOT/etc/resolv.conf
 exec_cmd "touch $NEW_ROOT/etc/hosts"
 echo "127.0.0.1 localhost.localdomain localhost" > $NEW_ROOT/etc/hosts
 
-# Install network programs
-exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install dhcp-client dhcp-common locales locales-en pump"
-
 }
+
+
+auto_nethd()
+{
+exec_cmd "cp -f $NEW_ROOT/etc/rc.d/rc.local $NEW_ROOT/et/rc.d/rc.local.bak"
+cat >"$NEW_ROOT/etc/rc.d/rc.local"<<EOF
+touch /var/lock/subsys/local
+hwdetect
+mv -f /etc/rc.d/rc.local.bak /etc/rc.d/rc.local
+mv -f /etc/fstab.hwdetect.save /etc/fstab
+EOF
+
+exec_cmd "chroot $NEW_ROOT chkconfig dkms off"
+}
+
 
 make_livecd()
 {
@@ -445,8 +441,8 @@ exec_cmd "apt-get -c tmp/new-apt.conf -y -o=RPM::RootDir=$NEW_ROOT install uClib
 # since mklivecd is not on the repositories, and it depends on X, which we dont have
 # now, we must D/L by hand, and then install by force
 
-#exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.5.8-1mdk.noarch.rpm"
-exec_cmd  "wget http://download.berlios.de/livecd/mklivecd-0.5.9-0.20041231.1mdk.noarch.rpm"
+exec_cmd "wget http://download.berlios.de/livecd/mklivecd-0.6.0-20060422.1mdk.noarch.rpm"
+
 exec_cmd "rpm -Uhv --root $NEW_ROOT mklivecd*.rpm --nodeps"
 exec_cmd "rm -f mklivecd*.rpm"
 
@@ -460,7 +456,39 @@ explain "Created $LIVECD_NAME"
 
 }
 
-# <-- main -->
+
+clean_up()
+{
+if [ $READONLY_CONFIG == 0 ]; then
+        save_config
+else
+        explain "Warning: Config file is in read-only mode"
+        explain "-----------------------------------------"
+fi
+
+mv tmp/$LOG_FILE .
+
+# from now on, we cannot use exec_cmd, since it logs,
+# and the log file was removed
+
+if [ $SAVE_RPMS != 0 ]; then
+        explain "Backing up rpms for next time."
+        mkdir -p rpms
+        mv -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
+	# cp -f $NEW_ROOT/var/cache/apt/*.rpm rpms/
+fi
+
+if [ $CLEAN_AFTER != 0 ]; then
+        explain "Cleaning \$NEW_ROOT: $NEW_ROOT"
+        rm -fr $NEW_ROOT
+fi
+
+explain "Cleaning tmp."
+rm -fr tmp
+
+}
+
+#################### <-- main --> #########################
 
 # Only root may Run this script.
 check_root
@@ -476,6 +504,7 @@ make_config_files
 update_apt
 install_system
 make_network
+auto_nethd
 make_livecd
 make_fstab
 make_boot
