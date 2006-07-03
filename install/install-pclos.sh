@@ -233,8 +233,8 @@ LIVECD_LOOPTYPE=$LIVECD_LOOPTYPE
 
 # Kernel to be used while booting.
 # This may be subject to repository dependencies
-# old: 2.6.12-oci6.mdk
-# current default: 2.6.15-oci3.lve
+# old: 2.6.15-oci4.mdk
+# current default: 2.6.15-oci4.lve
 LIVECD_KERNEL=$LIVECD_KERNEL
 
 # Keyboard to be used in the livecd.
@@ -269,7 +269,7 @@ READONLY_CONFIG=1
 MAKE_LIVECD=1
 LIVECD_RESOLUTION="1024x768"
 LIVECD_LOOPTYPE="sqfs"
-LIVECD_KERNEL="2.6.15-oci3.lve"
+LIVECD_KERNEL="2.6.15-oci4.lve"
 LIVECD_KEYBOARD="us"
 LIVECD_NAME="livecd.iso"
 
